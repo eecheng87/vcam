@@ -49,7 +49,6 @@ static int vcam_querycap(struct file *file,
     strcpy(cap->bus_info, "platform: virtual");
     cap->capabilities = V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING |
                         V4L2_CAP_READWRITE | V4L2_CAP_DEVICE_CAPS;
-
     return 0;
 }
 
