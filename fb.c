@@ -52,7 +52,6 @@ static ssize_t vcamfb_write(struct file *file,
     size_t to_be_copyied;
     unsigned long flags = 0;
     void *data;
-
     struct vcam_device *dev = file->private_data;
     if (!dev) {
         pr_err("Private data field of file not initialized yet.\n");

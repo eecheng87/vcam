@@ -4,6 +4,7 @@
 #include <linux/time.h>
 #include <media/videobuf2-core.h>
 #include <media/videobuf2-vmalloc.h>
+#include <linux/random.h>
 
 #include "device.h"
 #include "fb.h"
@@ -429,13 +430,7 @@ static void submit_noinput_buffer(struct vcam_out_buffer *buf,
             yuyv_ptr++;
         }
     } else {
-        for (i = 0; i < 255; i++) {
-            memset(vbuf_ptr, i, rowsize * stripe_size);
-            vbuf_ptr += rowsize * stripe_size;
-        }
-
-        if (rows % 255)
-            memset(vbuf_ptr, 0xff, rowsize * (rows % 255));
+        get_random_bytes(vbuf_ptr, rowsize * rows);
     }
 
     buf->vb.timestamp = ktime_get_ns();
@@ -568,9 +563,10 @@ static void submit_copy_buffer(struct vcam_out_buffer *out_buf,
                                struct vcam_in_buffer *in_buf,
                                struct vcam_device *dev)
 {
-    void *in_vbuf_ptr, *out_vbuf_ptr;
+    void *in_vbuf_ptr = NULL, *out_vbuf_ptr;
 
     in_vbuf_ptr = in_buf->data;
+
     if (!in_vbuf_ptr) {
         pr_err("Input buffer is NULL in ready state\n");
         return;
@@ -635,10 +631,12 @@ int submitter_thread(void *data)
 
         /* Do something and sleep */
         int computation_time_jiff = jiffies;
-        spin_lock_irqsave(&dev->out_q_slock, flags);
-        if (list_empty(&q->active)) {
+        spin_lock_irqsave(&dev->out_q_slock, flags); 
+        if (list_empty(&q->active)) { 
+            //dum_buf = (struct vcam_out_buffer *) kzalloc(sizeof(struct vcam_out_buffer), GFP_KERNEL);
             pr_debug("Buffer queue is empty\n");
             spin_unlock_irqrestore(&dev->out_q_slock, flags);
+            //submit_copy_buffer(dum_buf, NULL, dev);
             goto have_a_nap;
         }
         buf = list_entry(q->active.next, struct vcam_out_buffer, list);
@@ -661,6 +659,9 @@ int submitter_thread(void *data)
         }
 
     have_a_nap:
+        /* generate random signal */
+        //submit_copy_buffer(NULL, NULL, dev);
+
         if (!dev->output_fps.denominator) {
             dev->output_fps.numerator = 1001;
             dev->output_fps.denominator = 30000;
