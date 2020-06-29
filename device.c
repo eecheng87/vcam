@@ -430,7 +430,12 @@ static void submit_noinput_buffer(struct vcam_out_buffer *buf,
             yuyv_ptr++;
         }
     } else {
-        get_random_bytes(vbuf_ptr, rowsize * rows);
+        for (i = 0; i < 255; i++) {
+            memset(vbuf_ptr, i, rowsize * stripe_size);
+            vbuf_ptr += rowsize * stripe_size;
+        }
+        if (rows % 255)
+            memset(vbuf_ptr, 0xff, rowsize * (rows % 255));
     }
 
     buf->vb.timestamp = ktime_get_ns();
@@ -632,11 +637,9 @@ int submitter_thread(void *data)
         /* Do something and sleep */
         int computation_time_jiff = jiffies;
         spin_lock_irqsave(&dev->out_q_slock, flags); 
-        if (list_empty(&q->active)) { 
-            //dum_buf = (struct vcam_out_buffer *) kzalloc(sizeof(struct vcam_out_buffer), GFP_KERNEL);
+        if (list_empty(&q->active)) {
             pr_debug("Buffer queue is empty\n");
             spin_unlock_irqrestore(&dev->out_q_slock, flags);
-            //submit_copy_buffer(dum_buf, NULL, dev);
             goto have_a_nap;
         }
         buf = list_entry(q->active.next, struct vcam_out_buffer, list);
